@@ -1,0 +1,5 @@
+mysql_host: 'localhost'
+mysql_user: 'root'
+mysql_password: 'Myhan@09240105003'
+mysql_db: 'MPlantTsdb'
+

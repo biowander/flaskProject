@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Protein Data Chart</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+</head>
+<body>
+    <h1>Protein Data Chart</h1>
+    <div id="main" style="width: 1000px; height: 600px;"></div>
+    <script>
+        var chartDom = document.getElementById('main');
+        var myChart = echarts.init(chartDom);
+
+        fetch('/data').then(response => response.json()).then(data => {
+            var categoryData = data.map(item => item.proteinID);
+            var barData = data.map(item => item.average);
+            var errorData = data.map((item, index) => [
+                index, // 索引
+                item.average - item.error, // 误差下限
+                item.average + item.error  // 误差上限
+            ]);
+
+            var option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    }
+                },
+                title: {
+                    text: 'Error Bar Chart'
+                },
+                legend: {
+                    data: ['bar', 'error']
+                },
+                dataZoom: [
+                    {
+                        type: 'slider',
+                        start: 50,
+                        end: 70
+                    },
+                    {
+                        type: 'inside',
+                        start: 50,
+                        end: 70
+                    }
+                ],
+                xAxis: {
+                    type: 'category',
+                    data: categoryData
+                },
+                yAxis: {},
+                series: [
+                    {
+                        name: 'bar',
+                        type: 'bar',
+                        data: barData,
+                        itemStyle: {
+                            color: '#77bef7'
+                        }
+                    },
+                    {
+                        name: 'error',
+                        type: 'custom',
+                        itemStyle: {
+                            borderWidth: 1.5
+                        },
+                        renderItem: function (params, api) {
+                            var xValue = params.dataIndex;
+                            var highPoint = api.coord([xValue, api.value(2)]);
+                            var lowPoint = api.coord([xValue, api.value(1)]);
+                            var barWidth = api.size([1, 0])[0] * 0.2; // 减少乘数以缩短横线长度
+
+                            return {
+                                type: 'group',
+                                children: [
+                                    {
+                                        type: 'line',
+                                        shape: {
+                                            x1: highPoint[0] - barWidth / 2, y1: highPoint[1],
+                                            x2: highPoint[0] + barWidth / 2, y2: highPoint[1]
+                                        },
+                                        style: {
+                                            stroke: 'black', lineWidth: 2
+                                        }
+                                    },
+                                    {
+                                        type: 'line',
+                                        shape: {
+                                            x1: highPoint[0], y1: highPoint[1],
+                                            x2: lowPoint[0], y2: lowPoint[1]
+                                        },
+                                        style: {
+                                            stroke: 'black', lineWidth: 2
+                                        }
+                                    },
+                                    {
+                                        type: 'line',
+                                        shape: {
+                                            x1: lowPoint[0] - barWidth / 2, y1: lowPoint[1],
+                                            x2: lowPoint[0] + barWidth / 2, y2: lowPoint[1]
+                                        },
+                                        style: {
+                                            stroke: 'black', lineWidth: 2
+                                        }
+                                    }
+                                ]
+                            };
+                        },
+                        encode: {
+                            x: 0,
+                            y: [1, 2]
+                        },
+                        data: errorData,
+                        z: 100
+                    }
+                ]
+            };
+
+            myChart.setOption(option);
+        });
+    </script>
+</body>
+</html>
