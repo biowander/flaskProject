@@ -3,6 +3,21 @@
 <head>
     <title>蛋白质数据图表</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        #main {
+            width: 80vw; /* 使用视口宽度作为单位 */
+            height: 60vh; /* 使用视口高度作为单位 */
+            max-width: 1000px; /* 最大宽度限制 */
+            max-height: 600px; /* 最大高度限制 */
+            margin: auto; /* 水平居中 */
+            min-width: 300px; /* 最小宽度，确保图表在小屏幕上也能看得清楚 */
+            min-height: 200px; /* 最小高度 */
+        }
+    </style>
 </head>
 <body>
     <h1>蛋白质数据图表</h1>
@@ -11,20 +26,20 @@
         <input type="text" id="proteinID" name="proteinID">
         <input type="submit" value="提交">
     </form>
-    <div id="main" style="width: 100%; max-width: 1000px; height: 600px; margin: auto; min-width: 300px; min-height: 200px;"></div>
+    <div id="main"></div>
     <script>
         var speciesColors = {
-            'At': '#1f77b4', // 蓝色
-            'Ch': '#ff7f0e', // 橙色
-            'Os': '#2ca02c', // 绿色
-            'Sl': '#d62728', // 红色
-            'Zm': '#9467bd', // 紫色
+            'At': '#1f77b4',
+            'Ch': '#ff7f0e',
+            'Os': '#2ca02c',
+            'Sl': '#d62728',
+            'Zm': '#9467bd',
         };
 
         document.getElementById('queryForm').addEventListener('submit', function(e) {
-            e.preventDefault(); // 阻止表单传统提交
+            e.preventDefault();
             var proteinID = document.getElementById('proteinID').value;
-            fetchData(proteinID); // 根据 proteinID 获取数据
+            fetchData(proteinID);
         });
 
         function fetchData(proteinID) {
@@ -41,7 +56,6 @@
                     }
                     return a.speciesName.localeCompare(b.speciesName);
                 });
-
                 renderChart(data);
             });
         }
@@ -58,17 +72,37 @@
                     text: 'Error Bar Chart'
                 },
                 legend: {
-                    data: ['bar', 'error']
+                    data: ['bar', 'error'],
+                    right: 10  // Position legend at the bottom
+                },
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '15%',  // Leave space for the legend and dataZoom
+                    containLabel: true
                 },
                 dataZoom: [
-                    {type: 'slider', start: 0, end: 100},
-                    {type: 'inside', start: 0, end: 100}
+                    {
+                        type: 'slider',
+                        start: 0,
+                        end: 10,
+                        bottom: 30  // Position dataZoom closer to x-axis
+                    },
+                    {
+                        type: 'inside',
+                        start: 0,
+                        end: 100
+                    }
                 ],
                 xAxis: {
                     type: 'category',
                     data: data.map(item => item.proteinID)
                 },
-                yAxis: {},
+                yAxis: {
+                    min: "0",
+                    type: 'value',
+                    scale: true  // Scale axis according to the data
+                },
                 series: [
                     {
                         name: 'bar',
@@ -78,7 +112,8 @@
                             itemStyle: {
                                 color: speciesColors[item.speciesName] || '#7f7f7f'
                             }
-                        }))
+                        })),
+                        z: 2
                     },
                     {
                         name: 'error',
@@ -98,7 +133,8 @@
                                         x2: highPoint[0] + barWidth, y2: highPoint[1]
                                     },
                                     style: {
-                                        stroke: speciesColors[speciesName] || 'black', lineWidth: 2
+                                        stroke: speciesColors[speciesName] || 'black',
+                                        lineWidth: 2
                                     }
                                 }, {
                                     type: 'line',
@@ -107,7 +143,8 @@
                                         x2: lowPoint[0], y2: lowPoint[1]
                                     },
                                     style: {
-                                        stroke: speciesColors[speciesName] || 'black', lineWidth: 2
+                                        stroke: speciesColors[speciesName] || 'black',
+                                        lineWidth: 2
                                     }
                                 }, {
                                     type: 'line',
@@ -116,7 +153,8 @@
                                         x2: lowPoint[0] + barWidth, y2: lowPoint[1]
                                     },
                                     style: {
-                                        stroke: speciesColors[speciesName] || 'black', lineWidth: 2
+                                        stroke: speciesColors[speciesName] || 'black',
+                                        lineWidth: 2
                                     }
                                 }]
                             };
@@ -128,9 +166,13 @@
             };
 
             myChart.setOption(option);
+            window.onresize = function() {
+                myChart.resize();
+            };
         }
 
         fetchData(); // Initial load without proteinID to display all data
     </script>
 </body>
 </html>
+

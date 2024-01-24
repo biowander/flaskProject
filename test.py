@@ -15,7 +15,7 @@ def get_db_connection():
 def data():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT proteinID, variable, value FROM test")
+    cursor.execute("SELECT proteinID, variable, value FROM MPlantTs")
     query_results = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -31,19 +31,22 @@ def data():
             # 如果 value 无法转换为浮点数，跳过这个数据点
             continue
         protein_data.setdefault(proteinID, []).append(value)
-    print(protein_data)
+    print(protein_data.get("A0A2K3DWI2"))
 
     # 计算每个 proteinID 的平均值和标准差
     processed_data = []
     for proteinID, values in protein_data.items():
-        average = np.mean(values)
-        std_dev = np.std(values)
-        processed_data.append({
-            'proteinID': proteinID,
-            'average': average,
-            'error': std_dev
-        })
-        break
+        if (proteinID == "A0A2K3DWI2"):
+            print(values)
+            average = np.mean(values)
+            std_dev = np.std(values)
+            print(std_dev)
+            processed_data.append({
+                'proteinID': proteinID,
+                'average': average,
+                'error': std_dev
+            })
+            break
     print(processed_data)
 
 if __name__ == '__main__':
