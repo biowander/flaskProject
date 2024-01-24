@@ -11,9 +11,8 @@
         <input type="text" id="proteinID" name="proteinID">
         <input type="submit" value="提交">
     </form>
-    <div id="main" style="width: 1000px; height: 600px;"></div>
+    <div id="main" style="width: 100%; max-width: 1000px; height: 600px; margin: auto; min-width: 300px; min-height: 200px;"></div>
     <script>
-        // 定义颜色映射
         var speciesColors = {
             'At': '#1f77b4', // 蓝色
             'Ch': '#ff7f0e', // 橙色
@@ -35,71 +34,103 @@
             }
 
             fetch(url).then(response => response.json()).then(data => {
-                var categoryData = data.map(item => item.proteinID);
-                var barData = data.map(item => ({
-                    value: item.average,
-                    itemStyle: {
-                        color: speciesColors[item.speciesName] || '#7f7f7f' // 默认颜色，如果 speciesName 没有映射颜色
+                // 按 speciesName 排序，相同物种内按 value 排序
+                data.sort((a, b) => {
+                    if (a.speciesName === b.speciesName) {
+                        return a.average - b.average;
                     }
-                }));
-                var errorData = data.map((item, index) => [
-                    index, item.average - item.error, item.average + item.error, item.speciesName
-                ]);
+                    return a.speciesName.localeCompare(b.speciesName);
+                });
 
-                var option = {
-                    tooltip: {
-                        trigger: 'axis',
-                        axisPointer: {type: 'shadow'}
-                    },
-                    title: {text: 'Error Bar Chart'},
-                    legend: {data: ['bar', 'error']},
-                    dataZoom: [{type: 'slider', start: 0, end: 100}, {type: 'inside', start: 0, end: 100}],
-                    xAxis: {type: 'category', data: categoryData},
-                    yAxis: {},
-                    series: [{
+                renderChart(data);
+            });
+        }
+
+        function renderChart(data) {
+            var chartDom = document.getElementById('main');
+            var myChart = echarts.init(chartDom);
+            var option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {type: 'shadow'}
+                },
+                title: {
+                    text: 'Error Bar Chart'
+                },
+                legend: {
+                    data: ['bar', 'error']
+                },
+                dataZoom: [
+                    {type: 'slider', start: 0, end: 100},
+                    {type: 'inside', start: 0, end: 100}
+                ],
+                xAxis: {
+                    type: 'category',
+                    data: data.map(item => item.proteinID)
+                },
+                yAxis: {},
+                series: [
+                    {
                         name: 'bar',
                         type: 'bar',
-                        data: barData
-                    }, {
+                        data: data.map(item => ({
+                            value: item.average,
+                            itemStyle: {
+                                color: speciesColors[item.speciesName] || '#7f7f7f'
+                            }
+                        }))
+                    },
+                    {
                         name: 'error',
                         type: 'custom',
-                        renderItem: function (params, api) {
+                        renderItem: function(params, api) {
                             var xValue = params.dataIndex;
                             var highPoint = api.coord([xValue, api.value(2)]);
                             var lowPoint = api.coord([xValue, api.value(1)]);
-                            var speciesName = api.value(3);
+                            var speciesName = data[xValue].speciesName;
                             var barWidth = api.size([1, 0])[0] * 0.1;
                             return {
                                 type: 'group',
                                 children: [{
                                     type: 'line',
-                                    shape: {x1: highPoint[0] - barWidth, y1: highPoint[1], x2: highPoint[0] + barWidth, y2: highPoint[1]},
-                                    style: {stroke: speciesColors[speciesName] || 'black', lineWidth: 2} // 使用 speciesName 对应的颜色
-
+                                    shape: {
+                                        x1: highPoint[0] - barWidth, y1: highPoint[1],
+                                        x2: highPoint[0] + barWidth, y2: highPoint[1]
+                                    },
+                                    style: {
+                                        stroke: speciesColors[speciesName] || 'black', lineWidth: 2
+                                    }
                                 }, {
                                     type: 'line',
-                                    shape: {x1: highPoint[0], y1: highPoint[1], x2: lowPoint[0], y2: lowPoint[1]},
-                                    style: {stroke: speciesColors[speciesName] || 'black', lineWidth: 2}
+                                    shape: {
+                                        x1: highPoint[0], y1: highPoint[1],
+                                        x2: lowPoint[0], y2: lowPoint[1]
+                                    },
+                                    style: {
+                                        stroke: speciesColors[speciesName] || 'black', lineWidth: 2
+                                    }
                                 }, {
                                     type: 'line',
-                                    shape: {x1: lowPoint[0] - barWidth, y1: lowPoint[1], x2: lowPoint[0] + barWidth, y2: lowPoint[1]},
-                                    style: {stroke: speciesColors[speciesName] || 'black', lineWidth: 2}
+                                    shape: {
+                                        x1: lowPoint[0] - barWidth, y1: lowPoint[1],
+                                        x2: lowPoint[0] + barWidth, y2: lowPoint[1]
+                                    },
+                                    style: {
+                                        stroke: speciesColors[speciesName] || 'black', lineWidth: 2
+                                    }
                                 }]
                             };
                         },
-                        data: errorData,
+                        data: data.map(item => [item.proteinID, item.average - item.error, item.average + item.error]),
                         z: 3
-                    }]
-                };
+                    }
+                ]
+            };
 
-                var chartDom = document.getElementById('main');
-                var myChart = echarts.init(chartDom);
-                myChart.setOption(option);
-            });
+            myChart.setOption(option);
         }
 
-        // 初始加载时不带参数调用，显示所有数据
-        fetchData();
+        fetchData(); // Initial load without proteinID to display all data
     </script>
 </body>
 </html>
