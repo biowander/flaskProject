@@ -1,124 +1,90 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Protein Data Chart</title>
+    <title>蛋白质数据图表</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
 </head>
 <body>
-    <h1>Protein Data Chart</h1>
+    <h1>蛋白质数据图表</h1>
+    <form id="queryForm">
+        <label for="proteinID">输入 ProteinID：</label>
+        <input type="text" id="proteinID" name="proteinID">
+        <input type="submit" value="提交">
+    </form>
     <div id="main" style="width: 1000px; height: 600px;"></div>
     <script>
-        var chartDom = document.getElementById('main');
-        var myChart = echarts.init(chartDom);
+        document.getElementById('queryForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // 阻止表单传统提交
+            var proteinID = document.getElementById('proteinID').value;
+            fetchData(proteinID); // 根据 proteinID 获取数据
+        });
 
-        fetch('/data').then(response => response.json()).then(data => {
-            var categoryData = data.map(item => item.proteinID);
-            var barData = data.map(item => item.average);
-            var errorData = data.map((item, index) => [
-                index, // 索引
-                item.average - item.error, // 误差下限
-                item.average + item.error  // 误差上限
-            ]);
+        function fetchData(proteinID) {
+            var url = '/data';
+            if (proteinID) {
+                url += '?proteinID=' + encodeURIComponent(proteinID); // 如果提供了 proteinID，则将其附加到 URL 上
+            }
 
-            var option = {
-                tooltip: {
-                    trigger: 'axis',
-                    axisPointer: {
-                        type: 'shadow'
-                    }
-                },
-                title: {
-                    text: 'Error Bar Chart'
-                },
-                legend: {
-                    data: ['bar', 'error']
-                },
-                dataZoom: [
-                    {
-                        type: 'slider',
-                        start: 50,
-                        end: 70
+            fetch(url).then(response => response.json()).then(data => {
+                var categoryData = data.map(item => item.proteinID);
+                var barData = data.map(item => item.average);
+                var errorData = data.map((item, index) => [
+                    index, item.average - item.error, item.average + item.error
+                ]);
+
+                var option = {
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: {type: 'shadow'}
                     },
-                    {
-                        type: 'inside',
-                        start: 50,
-                        end: 70
-                    }
-                ],
-                xAxis: {
-                    type: 'category',
-                    data: categoryData
-                },
-                yAxis: {},
-                series: [
-                    {
+                    title: {text: 'Error Bar Chart'},
+                    legend: {data: ['bar', 'error']},
+                    dataZoom: [{type: 'slider', start: 0, end: 100}, {type: 'inside', start: 0, end: 100}],
+                    xAxis: {type: 'category', data: categoryData},
+                    yAxis: {},
+                    series: [{
                         name: 'bar',
                         type: 'bar',
                         data: barData,
-                        itemStyle: {
-                            color: '#77bef7'
-                        }
-                    },
-                    {
+                        itemStyle: {color: '#77bef7'}
+                    }, {
                         name: 'error',
                         type: 'custom',
-                        itemStyle: {
-                            borderWidth: 1.5
-                        },
                         renderItem: function (params, api) {
                             var xValue = params.dataIndex;
                             var highPoint = api.coord([xValue, api.value(2)]);
                             var lowPoint = api.coord([xValue, api.value(1)]);
-                            var barWidth = api.size([1, 0])[0] * 0.2; // 减少乘数以缩短横线长度
-
+                            var barWidth = api.size([1, 0])[0] * 0.1;
                             return {
                                 type: 'group',
-                                children: [
-                                    {
-                                        type: 'line',
-                                        shape: {
-                                            x1: highPoint[0] - barWidth / 2, y1: highPoint[1],
-                                            x2: highPoint[0] + barWidth / 2, y2: highPoint[1]
-                                        },
-                                        style: {
-                                            stroke: 'black', lineWidth: 2
-                                        }
-                                    },
-                                    {
-                                        type: 'line',
-                                        shape: {
-                                            x1: highPoint[0], y1: highPoint[1],
-                                            x2: lowPoint[0], y2: lowPoint[1]
-                                        },
-                                        style: {
-                                            stroke: 'black', lineWidth: 2
-                                        }
-                                    },
-                                    {
-                                        type: 'line',
-                                        shape: {
-                                            x1: lowPoint[0] - barWidth / 2, y1: lowPoint[1],
-                                            x2: lowPoint[0] + barWidth / 2, y2: lowPoint[1]
-                                        },
-                                        style: {
-                                            stroke: 'black', lineWidth: 2
-                                        }
-                                    }
-                                ]
+                                children: [{
+                                    type: 'line',
+                                    shape: {x1: highPoint[0] - barWidth, y1: highPoint[1], x2: highPoint[0] + barWidth, y2: highPoint[1]},
+                                    style: {stroke: 'black', lineWidth: 2}
+                                }, {
+                                    type: 'line',
+                                    shape: {x1: highPoint[0], y1: highPoint[1], x2: lowPoint[0], y2: lowPoint[1]},
+                                    style: {stroke: 'black', lineWidth: 2}
+                                }, {
+                                    type: 'line',
+                                    shape: {x1: lowPoint[0] - barWidth, y1: lowPoint[1], x2: lowPoint[0] + barWidth, y2: lowPoint[1]},
+                                    style: {stroke: 'black', lineWidth: 2}
+                                }]
                             };
                         },
-                        encode: {
-                            x: 0,
-                            y: [1, 2]
-                        },
                         data: errorData,
-                        z: 100
-                    }
-                ]
-            };
+                        z: 3
+                    }]
+                };
 
-            myChart.setOption(option);
-        });
+                var chartDom = document.getElementById('main');
+                var myChart = echarts.init(chartDom);
+                myChart.setOption(option);
+            });
+        }
+
+        // 初始加载时不带参数调用，显示所有数据
+        fetchData();
     </script>
 </body>
 </html>
