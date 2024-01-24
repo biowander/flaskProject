@@ -9,13 +9,13 @@
             font-family: Arial, sans-serif;
         }
         #main {
-            width: 80vw; /* 使用视口宽度作为单位 */
-            height: 60vh; /* 使用视口高度作为单位 */
-            max-width: 1000px; /* 最大宽度限制 */
-            max-height: 600px; /* 最大高度限制 */
-            margin: auto; /* 水平居中 */
-            min-width: 300px; /* 最小宽度，确保图表在小屏幕上也能看得清楚 */
-            min-height: 200px; /* 最小高度 */
+            width: 80vw;
+            height: 60vh;
+            max-width: 1000px;
+            max-height: 600px;
+            margin: auto;
+            min-width: 300px;
+            min-height: 200px;
         }
     </style>
 </head>
@@ -43,19 +43,9 @@
         });
 
         function fetchData(proteinID) {
-            var url = '/data';
-            if (proteinID) {
-                url += '?proteinID=' + encodeURIComponent(proteinID); // 如果提供了 proteinID，则将其附加到 URL 上
-            }
-
+            var url = '/data' + (proteinID ? '?proteinID=' + encodeURIComponent(proteinID) : '');
             fetch(url).then(response => response.json()).then(data => {
-                // 按 speciesName 排序，相同物种内按 value 排序
-                data.sort((a, b) => {
-                    if (a.speciesName === b.speciesName) {
-                        return a.average - b.average;
-                    }
-                    return a.speciesName.localeCompare(b.speciesName);
-                });
+                data.sort((a, b) => a.speciesName.localeCompare(b.speciesName));
                 renderChart(data);
             });
         }
@@ -66,19 +56,32 @@
             var option = {
                 tooltip: {
                     trigger: 'axis',
-                    axisPointer: {type: 'shadow'}
+                    axisPointer: { type: 'shadow' },
+                    formatter: function (params) {
+                        var tooltipText = '';
+                        params.forEach(function (item) {
+                            if (item.seriesName === 'bar') {
+                                tooltipText += 'Protein ID: ' + item.name + '<br/>';
+                                tooltipText += 'Average: ' + item.data.value.toFixed(2) + '<br/>';
+                                // Assuming error is provided in item.data.error
+                                tooltipText += 'Std Dev: ' + item.data.error.toFixed(2) + '<br/>';
+                            }
+                        });
+                        return tooltipText;
+                    }
                 },
                 title: {
                     text: 'Error Bar Chart'
                 },
                 legend: {
-                    data: ['bar', 'error'],
-                    right: 10  // Position legend at the bottom
+                    data: ['bar'],
+                    align: 'right',
+                    right: 10
                 },
                 grid: {
                     left: '10%',
                     right: '10%',
-                    bottom: '15%',  // Leave space for the legend and dataZoom
+                    bottom: '15%',
                     containLabel: true
                 },
                 dataZoom: [
@@ -109,11 +112,12 @@
                         type: 'bar',
                         data: data.map(item => ({
                             value: item.average,
+                            error: item.error, // Assuming the backend provides an 'error' field
                             itemStyle: {
                                 color: speciesColors[item.speciesName] || '#7f7f7f'
                             }
                         })),
-                        z: 2
+                        z: "2"
                     },
                     {
                         name: 'error',
@@ -166,13 +170,10 @@
             };
 
             myChart.setOption(option);
-            window.onresize = function() {
-                myChart.resize();
-            };
+            window.onresize = myChart.resize;
         }
 
         fetchData(); // Initial load without proteinID to display all data
     </script>
 </body>
 </html>
-
