@@ -28,34 +28,35 @@ def data():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # 根据是否提供了 proteinID 修改 SQL 查询
     if protein_id:
-        cursor.execute("SELECT proteinID, variable, value FROM MPlantTs WHERE proteinID = %s", (protein_id,))
+        cursor.execute("SELECT proteinID, speciesName, value FROM MPlantTs WHERE proteinID = %s", (protein_id,))
     else:
-        cursor.execute("SELECT proteinID, variable, value FROM MPlantTs")
+        cursor.execute("SELECT proteinID, speciesName, value FROM MPlantTs")
 
     query_results = cursor.fetchall()
     cursor.close()
     conn.close()
 
-    # 数据处理
     protein_data = {}
     for row in query_results:
-        proteinID = row['proteinID']
+        proteinID, speciesName = row['proteinID'], row['speciesName']
         try:
             value = float(row['value'])
         except ValueError:
             continue
-        protein_data.setdefault(proteinID, []).append(value)
+        if proteinID not in protein_data:
+            protein_data[proteinID] = {'values': [], 'speciesName': speciesName}
+        protein_data[proteinID]['values'].append(value)
 
     processed_data = []
-    for proteinID, values in protein_data.items():
-        average = np.mean(values)
-        std_dev = np.std(values)
+    for proteinID, data in protein_data.items():
+        average = np.mean(data['values'])
+        std_dev = np.std(data['values'])
         processed_data.append({
             'proteinID': proteinID,
             'average': average,
-            'error': std_dev
+            'error': std_dev,
+            'speciesName': data['speciesName']
         })
 
     return jsonify(processed_data)

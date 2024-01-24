@@ -13,6 +13,15 @@
     </form>
     <div id="main" style="width: 1000px; height: 600px;"></div>
     <script>
+        // 定义颜色映射
+        var speciesColors = {
+            'At': '#1f77b4', // 蓝色
+            'Ch': '#ff7f0e', // 橙色
+            'Os': '#2ca02c', // 绿色
+            'Sl': '#d62728', // 红色
+            'Zm': '#9467bd', // 紫色
+        };
+
         document.getElementById('queryForm').addEventListener('submit', function(e) {
             e.preventDefault(); // 阻止表单传统提交
             var proteinID = document.getElementById('proteinID').value;
@@ -27,9 +36,14 @@
 
             fetch(url).then(response => response.json()).then(data => {
                 var categoryData = data.map(item => item.proteinID);
-                var barData = data.map(item => item.average);
+                var barData = data.map(item => ({
+                    value: item.average,
+                    itemStyle: {
+                        color: speciesColors[item.speciesName] || '#7f7f7f' // 默认颜色，如果 speciesName 没有映射颜色
+                    }
+                }));
                 var errorData = data.map((item, index) => [
-                    index, item.average - item.error, item.average + item.error
+                    index, item.average - item.error, item.average + item.error, item.speciesName
                 ]);
 
                 var option = {
@@ -45,8 +59,7 @@
                     series: [{
                         name: 'bar',
                         type: 'bar',
-                        data: barData,
-                        itemStyle: {color: '#77bef7'}
+                        data: barData
                     }, {
                         name: 'error',
                         type: 'custom',
@@ -54,21 +67,23 @@
                             var xValue = params.dataIndex;
                             var highPoint = api.coord([xValue, api.value(2)]);
                             var lowPoint = api.coord([xValue, api.value(1)]);
+                            var speciesName = api.value(3);
                             var barWidth = api.size([1, 0])[0] * 0.1;
                             return {
                                 type: 'group',
                                 children: [{
                                     type: 'line',
                                     shape: {x1: highPoint[0] - barWidth, y1: highPoint[1], x2: highPoint[0] + barWidth, y2: highPoint[1]},
-                                    style: {stroke: 'black', lineWidth: 2}
+                                    style: {stroke: speciesColors[speciesName] || 'black', lineWidth: 2} // 使用 speciesName 对应的颜色
+
                                 }, {
                                     type: 'line',
                                     shape: {x1: highPoint[0], y1: highPoint[1], x2: lowPoint[0], y2: lowPoint[1]},
-                                    style: {stroke: 'black', lineWidth: 2}
+                                    style: {stroke: speciesColors[speciesName] || 'black', lineWidth: 2}
                                 }, {
                                     type: 'line',
                                     shape: {x1: lowPoint[0] - barWidth, y1: lowPoint[1], x2: lowPoint[0] + barWidth, y2: lowPoint[1]},
-                                    style: {stroke: 'black', lineWidth: 2}
+                                    style: {stroke: speciesColors[speciesName] || 'black', lineWidth: 2}
                                 }]
                             };
                         },
