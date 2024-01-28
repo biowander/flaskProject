@@ -62,9 +62,9 @@
                         params.forEach(function (item) {
                             if (item.seriesName === 'bar') {
                                 tooltipText += 'Protein ID: ' + item.name + '<br/>';
-                                tooltipText += 'Average: ' + item.data.value.toFixed(2) + '<br/>';
+                                tooltipText += 'Average: ' + item.data.value.toFixed(5) + '<br/>';
                                 // Assuming error is provided in item.data.error
-                                tooltipText += 'Std Dev: ' + item.data.error.toFixed(2) + '<br/>';
+                                tooltipText += 'Std Dev: ' + item.data.error.toFixed(5) + '<br/>';
                             }
                         });
                         return tooltipText;
