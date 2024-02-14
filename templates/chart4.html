@@ -106,9 +106,13 @@
                         params.forEach(function (item) {
                             if (item.seriesName === 'bar') {
                                 tooltipText += 'Protein ID: ' + item.name + '<br/>';
+                                var proteinNames = item.data.proteinNames.length > 50 ? item.data.proteinNames.substring(0, 50) + '...' : item.data.proteinNames;
+                                tooltipText += 'Protein Names: ' + proteinNames + '<br/>';
                                 tooltipText += 'Average: ' + item.data.value.toFixed(5) + '<br/>';
                                 // Assuming error is provided in item.data.error
                                 tooltipText += 'Std Dev: ' + item.data.error.toFixed(5) + '<br/>';
+                                tooltipText += 'Species: ' + item.data.species + '<br/>';
+                                tooltipText += 'HOG: ' + item.data.hog + '<br/>';  // 确保item.data.HOG正确反映了后端发送的HOG值
                             }
                         });
                         return tooltipText;
@@ -168,7 +172,10 @@
                         type: 'bar',
                         data: data.map(item => ({
                             value: item.average,
+                            proteinNames: item.ProteinNames,
                             error: item.error,
+                            species: item.speciesName,
+                            hog: item.HOG,
                             // 直接为当前查询的蛋白质设置特殊样式
                             itemStyle: {
                                 color: speciesColors[item.speciesName] || '#7f7f7f',
@@ -232,6 +239,18 @@
 
             myChart.setOption(option);
             window.onresize = myChart.resize;
+
+            // 添加点击事件监听器
+            myChart.on('click', function(params) {
+                // 确保点击的是数据点（即bar系列）
+                if (params.seriesName === 'bar') {
+                    // 构造目标URL，使用点击的数据点的proteinID
+                    var targetUrl = 'https://www.uniprot.org/uniprotkb/' + params.name; // params.name应该包含proteinID
+                    // 在新标签页中打开URL
+                    window.open(targetUrl, '_blank');
+                }
+            });
+
         }
 
         fetchData(); // Initial load without proteinID to display all data

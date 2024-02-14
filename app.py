@@ -122,11 +122,11 @@ def data():
 
             # 使用这些ID执行查询
             format_strings = ','.join(['%s'] * len(query_ids))
-            query = f"SELECT proteinID, speciesName, value FROM MPlantTs WHERE proteinID IN ({','.join(['%s'] * len(query_ids))}) ORDER BY FIELD(proteinID, {','.join(['%s'] * len(query_ids))})"
+            query = f"SELECT proteinID, speciesName, value, HOG, Protein_names AS proteinNames FROM MPlantTs WHERE proteinID IN ({','.join(['%s'] * len(query_ids))}) ORDER BY FIELD(proteinID, {','.join(['%s'] * len(query_ids))})"
             cursor.execute(query, query_ids * 2)  # 参数需要重复两次，因为它们既用于IN又用于FIELD
         else:
             cursor.execute(
-                "SELECT proteinID, speciesName, value FROM MPlantTs WHERE value != 'NA' ORDER BY speciesName, proteinID")
+                "SELECT proteinID, speciesName, value, HOG, Protein_names AS proteinNames FROM MPlantTs WHERE value != 'NA' ORDER BY speciesName, proteinID")
 
         query_results = cursor.fetchall()
 
@@ -138,42 +138,32 @@ def data():
 
 
 def process_query_results(query_results):
-    """
-    处理查询结果，计算每个蛋白质的平均值和标准差，并准备最终的JSON数据。
-
-    参数:
-    query_results - 数据库查询返回的结果列表，每个元素是一个包含
-                    'proteinID', 'speciesName', 'value'键的字典。
-
-    返回:
-    处理后的数据列表，每个元素是一个字典，包含蛋白质ID、平均值、标准差和物种名称。
-    """
     protein_data = {}
-    # 整理查询结果，将同一蛋白质的值聚集在一起
     for row in query_results:
-        proteinID, speciesName = row['proteinID'], row['speciesName']
+        proteinID, speciesName, HOG, proteinNames = row['proteinID'], row['speciesName'], row['HOG'], row['proteinNames']
         try:
-            value = float(row['value'])  # 尝试将值转换为浮点数
+            value = float(row['value'])
         except ValueError:
-            continue  # 如果转换失败，忽略这个值
+            continue
 
         if proteinID not in protein_data:
-            protein_data[proteinID] = {'values': [], 'speciesName': speciesName}
+            protein_data[proteinID] = {'values': [], 'speciesName': speciesName, 'HOG': HOG, 'proteinNames': proteinNames}
         protein_data[proteinID]['values'].append(value)
 
+
     processed_data = []
-    # 计算每个蛋白质的平均值和标准差
     for proteinID, data in protein_data.items():
-        values = data['values']
-        if values:  # 确保值列表不为空
-            average = np.mean(values)
-            std_dev = np.std(values)
-            processed_data.append({
-                'proteinID': proteinID,
-                'average': average,
-                'error': std_dev,
-                'speciesName': data['speciesName']
-            })
+        average = np.mean(data['values'])
+        std_dev = np.std(data['values'])
+
+        processed_data.append({
+            'proteinID': proteinID,
+            'average': average,
+            'error': std_dev,
+            'speciesName': data['speciesName'],
+            'HOG': data['HOG'],  # 添加HOG值
+            'ProteinNames': data['proteinNames']
+        })
 
     return processed_data
 
